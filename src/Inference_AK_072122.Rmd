@@ -1,0 +1,292 @@
+---
+title: "Inference_AK_072122"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(lme4)
+library(sjPlot)
+library(sjmisc)
+library(ggplot2)
+library(gridExtra)
+library(lmerTest)
+
+df = read.csv("~/GoogleDrive/DS4A/team20_clean_MM_FA_FM_county_202207191713.csv")
+df = read.csv("~/GoogleDrive/DS4A/team20_clean_MM_FA_FM_county_202207231508.csv")
+#remove some of the irrelevant variables
+df_clean = df[,c(3:4,10,20:23,25:28,30,31:33,35:37,39:43,45:48)]
+#try scaling some variables by population size
+df_clean$LALOWI05_10_scaled = df_clean$LALOWI05_10/df_clean$estimated_population
+df_clean$estimated_population_log = log(df_clean$estimated_population)
+
+#scale all variables (excluding counts)
+df_clean[,-c(1,4:15)] <- scale(df_clean[,-c(1,4:15)])
+#create response variable, number of all markets
+df_clean$count_allM = df$count_FM + df$count_CSA + df$count_OFM
+#create response variable, number of all markets>0
+df_clean$count_allM_binary = df_clean$count_allM>0
+```
+
+Q1: How accessible are farmer’s markets in low-income versus other areas?  
+
+Responses:  
+(1) Number of markets in a county (3 types + combined) (Poisson)  
+(2) Binary if county has any market or not (combined) (Binomial)
+
+Fixed effects:  
+(1) LALOWI05_10: Average low income population count beyond 1/2 mile for urban areas or 10 miles for rural areas from supermarket  
+(2) 2019 Food insecurity rate
+
+Justification: All of the food insecurity metrics were highly correlated, and it did not make sense to do a principal components analysis. 2019 Food insecurity rate encompasses many of the other variables. LALOWI05_10 specifically accounts for distance to supermarket and was not correlated with the other variables.
+
+Random effects:  
+(1) State
+
+-----------------------------
+
+Q2: Are farmer’s markets in low-income areas more affordable than other areas?
+
+Dataset: Counties with at least market of any type
+
+Responses:  
+(1) Proportion of markets that accept SNAP (distribution? zero-inflated gamma?)  
+(2) Do any market(s) accept federal nutrition program (binary) (Binomial)
+
+Fixed effects:  
+(1) Median family income
+
+Random effects:  
+(1) State
+
+```{r, fig.height = 3, echo=FALSE}
+#check a few assumptions
+#cor(df_clean$LALOWI05_10, df_clean$X2019.Food.Insecurity.Rate, use="complete.obs")
+
+par(mfrow=c(1,3))
+hist(df_clean$count_allM,breaks=30)
+
+qqnorm(df_clean$LALOWI05_10_scaled, pch = 1, frame = FALSE)
+qqline(df_clean$LALOWI05_10_scaled, col = "steelblue", lwd = 2)
+
+qqnorm(df_clean$estimated_population_log, pch = 1, frame = FALSE)
+qqline(df_clean$estimated_population_log, col = "steelblue", lwd = 2)
+
+qqnorm(df_clean$X2019.Food.Insecurity.Rate, pch = 1, frame = FALSE)
+qqline(df_clean$X2019.Food.Insecurity.Rate, col = "steelblue", lwd = 2)
+
+```  
+
+looks like terms should be quadratic?  
+
+```{r, fig.height = 3, echo=FALSE}
+par(mfrow=c(1,2))
+plot(df_clean$X2019.Food.Insecurity.Rate, df_clean$count_allM)
+plot(df_clean$LALOWI05_10_scaled, df_clean$count_allM)
+plot(df_clean$estimated_population_log, df_clean$count_allM)
+```
+
+```{r, fig.height = 3,echo=FALSE}
+#Modelling 
+#all market count
+df_clean <- df_clean[is.na(df_clean$LALOWI05_10)==F,]
+df_clean <- df_clean[is.na(df_clean$estimated_population_log)==F,]
+df_clean <- df_clean[is.na(df_clean$MedianFamilyIncome)==F,]
+
+mod1 = (glmer(count_allM ~ poly(LALOWI05_10_scaled,2) +
+                poly(X2019.Food.Insecurity.Rate,2) +
+                poly(estimated_population_log,1) +
+                (1 | State), 
+              data = df_clean, family = poisson(link = "log")))
+
+summ=summary(mod1)
+summ$coefficients
+##need to scale LALOWI05_10 using estimated pop
+p1 = plot_model(mod1,type="pred",terms="X2019.Food.Insecurity.Rate [all]")
+p2 = plot_model(mod1,type="pred",terms="LALOWI05_10_scaled [all]")
+p3 = plot_model(mod1,type="pred",terms="estimated_population_log [all]")
+
+
+g1 = p1 + theme_sjplot2() + labs(x="Food insecurity rate",y = "# all markets")+ggtitle("Count All Markets")
+
+g2 = p2 + theme_sjplot2() + labs(x="% Low income far from supermarket",y = "# all markets")+ggtitle("Count All Markets")
+
+g3 = p3 + theme_sjplot2() + labs(x="Population size (log)",y = "# all markets")+ggtitle("Count All Markets")
+
+grid.arrange(g1,g2,g3,ncol=3)
+```
+
+```{r, fig.height = 3,echo=FALSE}
+#all farmers market count
+mod1 = (glmer(count_FM ~ poly(LALOWI05_10,2) +
+                poly(X2019.Food.Insecurity.Rate,2) +
+                (1 | State), 
+              data = df_clean, family = poisson(link = "log")))
+
+summ=summary(mod1)
+summ$coefficients
+
+p1 = plot_model(mod1,type="pred",terms="X2019.Food.Insecurity.Rate [all]")
+p2 = plot_model(mod1,type="pred",terms="LALOWI05_10 [all]")
+
+
+g1 = p1 + theme_sjplot2() + labs(x="Food insecurity rate",y = "# FM")+ggtitle("Count Farmers Markets")
+
+g2 = p2 + theme_sjplot2() + labs(x="Low income count far from supermarket",y = "# FM")+ggtitle("Count Farmers Markets")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+```{r, fig.height = 3,echo=FALSE}
+#all CSA count
+mod1 = (glmer(count_CSA ~ poly(LALOWI05_10,2) +
+                poly(X2019.Food.Insecurity.Rate,2) +
+                (1 | State), 
+              data = df_clean, family = poisson(link = "log")))
+
+summ=summary(mod1)
+summ$coefficients
+
+p1 = plot_model(mod1,type="pred",terms="X2019.Food.Insecurity.Rate [all]")
+p2 = plot_model(mod1,type="pred",terms="LALOWI05_10 [all]")
+
+
+g1 = p1 + theme_sjplot2() + labs(x="Food insecurity rate",y = "# CSA")+ggtitle("Count CSA")
+
+g2 = p2 + theme_sjplot2() + labs(x="Low income count far from supermarket",y = "# CSA")+ggtitle("Count CSA")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+```{r, fig.height = 3,echo=FALSE}
+#all OFM count
+mod1 = (glmer(count_OFM ~ poly(LALOWI05_10,2) +
+                poly(X2019.Food.Insecurity.Rate,2) +
+                (1 | State), 
+              data = df_clean, family = poisson(link = "log")))
+
+summ=summary(mod1)
+summ$coefficients
+
+p1 = plot_model(mod1,type="pred",terms="X2019.Food.Insecurity.Rate [all]")
+p2 = plot_model(mod1,type="pred",terms="LALOWI05_10 [all]")
+
+
+g1 = p1 + theme_sjplot2() + labs(x="Food insecurity rate",y = "# OFM")+ggtitle("Count OFM")
+
+g2 = p2 + theme_sjplot2() + labs(x="Low income count far from supermarket",y = "# OFM")+ggtitle("Count OFM")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+```{r, fig.height = 3,echo=FALSE}
+#all markets binary
+df_clean$count_allM_binary <- as.numeric(df_clean$count_allM_binary)
+
+mod1 = (glmer(count_allM_binary ~ 
+                # poly(LALOWI05_10_scaled,2) +
+                X2019.Food.Insecurity.Rate +
+                estimated_population_log +
+                MedianFamilyIncome +
+                (1 | State), 
+              data = df_clean, family = binomial(link = "logit")))
+
+summ=summary(mod1)
+summ$coefficients
+
+p1 = plot_model(mod1,type="pred",terms="X2019.Food.Insecurity.Rate")
+p2 = plot_model(mod1,type="pred",terms="MedianFamilyIncome")
+p3 = plot_model(mod1,type="pred",terms="estimated_population_log")
+
+g1 = p1 + theme_sjplot2() + labs(x="Food insecurity rate (scaled)",y = "Predicted prob. county has market")+ggtitle("")
+
+g2 = p2 + theme_sjplot2() + labs(x="Median family income (scaled)",y = "Predicted prob. county has market")+ggtitle("")
+
+g3 = p3 + theme_sjplot2() + labs(x="Population size (log, scaled)",y = "Predicted prob. county has market")+ggtitle("")
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+```  
+
+Question 1 conclusion: All models show a similar trend here. There is a negative linear relationship between food insecurity rate and number of markets, and the quadratic term is not statistically significant. There is a significant quadratic relationship between low income population count far from supermarkets and number of markets, where there is a peak in average number of markets at an intermediate level of low-income food access.
+
+
+
+Question 2:  
+
+Issue: not sure what distribution to use. Used Gaussian but it is not correct; not sure if it affects the result  
+
+```{r, fig.width = 3, fig.height = 3,echo=FALSE}
+df_q2 <- df_clean[df_clean$count_allM>0,]
+df_q2 <- df_q2[is.na(df_q2$MedianFamilyIncome)==F,]
+df_q2$p_snap = (df_q2$count_SNAP_participation_FM + df_q2$count_SNAP_participation_CSA + df_q2$count_SNAP_participation_OFM)/df_q2$count_allM
+  
+hist(df_q2$p_snap)
+
+plot(df_q2$MedianFamilyIncome,df_q2$p_snap)
+
+mod1 = (lmer(p_snap ~ MedianFamilyIncome +
+                (1 | State), 
+              data = df_q2))
+summ=summary(mod1)
+summ$coefficients
+
+p1 = plot_model(mod1,type="pred")
+
+p1$MedianFamilyIncome + theme_sjplot2() + labs(x="Median family income",y = "Proportion accepting SNAP")+ggtitle("")
+```
+
+
+```{r, fig.width = 3, fig.height = 3,echo=FALSE}
+df_q2$snap_binary = as.numeric(df_q2$p_snap>0)
+  
+mod1 = (glmer(snap_binary ~ 
+                MedianFamilyIncome +
+                estimated_population_log +
+                (1 | State), 
+              data = df_q2, family = binomial(link = "logit")))
+summ=summary(mod1)
+summ$coefficients
+
+p1 = plot_model(mod1,type="pred")
+
+p1$MedianFamilyIncome + theme_sjplot2() + labs(x="Median family income (scaled)",y = "P(At least 1 market accepts SNAP)")+ggtitle("")
+p1$estimated_population_log + theme_sjplot2() + labs(x="Population size (log, scaled)",y = "P(At least 1 market accepts SNAP)")+ggtitle("")
+```  
+
+
+Question 2 conclusion: Among counties that have markets, higher income counties are more likely to have a market that accepts SNAP.
+
+
+
+```{r, fig.height = 3,echo=FALSE}
+#plots for datafolio
+df_clean$State <- factor(df_clean$State)
+mod1 = (glmer(count_allM ~ poly(LALOWI05_10,2) +
+                poly(X2019.Food.Insecurity.Rate,2) +
+                (1 | State), 
+              data = df_clean, family = poisson(link = "log")))
+              
+p1 = plot_model(mod1,type="pred",terms="X2019.Food.Insecurity.Rate [all]")
+
+
+g1 = p1 + theme_sjplot2() + labs(x="Food insecurity rate (scaled)",y = "# All markets")+ggtitle("")
+
+df_q2$State = factor(df_q2$State)
+mod2 = (glmer(snap_binary ~ MedianFamilyIncome +
+                estimated_population_log +
+                (1 | State), 
+              data = df_q2, family = binomial(link = "logit")))
+p2 = plot_model(mod2,type="pred")
+
+g2 = p2$MedianFamilyIncome + theme_sjplot2() + labs(x="Median family income (scaled)",y = "P(At least 1 market accepts SNAP)")+ggtitle("")
+
+grid.arrange(g1,g2,ncol=2)
+```  
+
