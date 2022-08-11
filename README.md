@@ -3,3 +3,11 @@
 ![datafolio](src/data/images/Team20_Datafolio_DS4A_202207301415.pdf)
 xfun::embed_file("src/data/images/Team20_Datafolio_DS4A_202207301415.pdf")
 <img src="https://github.com/yecatstevir/farmer_market_food_insecurity/blob/040bc73ad7fbc71ddbb7cd51d0eab8ce4dad0aa4/src/data/images/Team20_Datafolio_DS4A_202207301415.pdf" alt="Poster" title="Role Of Farmers' Markets on Food Insecurity">
+
+
+
+<object data="[http://yoursite.com/the.pdf](https://github.com/yecatstevir/farmer_market_food_insecurity/blob/040bc73ad7fbc71ddbb7cd51d0eab8ce4dad0aa4/src/data/images/Team20_Datafolio_DS4A_202207301415.pdf)" type="application/pdf" width="700px" height="700px">
+    <embed src="[http://yoursite.com/the.pdf](https://github.com/yecatstevir/farmer_market_food_insecurity/blob/040bc73ad7fbc71ddbb7cd51d0eab8ce4dad0aa4/src/data/images/Team20_Datafolio_DS4A_202207301415.pdf)">
+        <p>This browser does not support PDFs. Please download the PDF to view it: <a href="[http://yoursite.com/the.pdf](https://github.com/yecatstevir/farmer_market_food_insecurity/blob/040bc73ad7fbc71ddbb7cd51d0eab8ce4dad0aa4/src/data/images/Team20_Datafolio_DS4A_202207301415.pdf)">Download PDF</a>.</p>
+    </embed>
+</object>
