@@ -8,6 +8,6 @@ xfun::embed_file("src/data/images/Team20_Datafolio_DS4A_202207301415.pdf")
 
 
 <!-- Embed PDF File -->
-<object src="src/data/images/Team20_Datafolio_DS4A_202207301415.pdf" type="application/pdf" title="SamplePdf" width="500" height="720">
-    <a href="src/data/images/Team20_Datafolio_DS4A_202207301415.pdf">shree</a> 
+<object data="src/data/images/Team20_Datafolio_DS4A_202207301415.pdf" type="application/pdf" title="SamplePdf" width="500" height="720">
+    <a href="src/data/images/Team20_Datafolio_DS4A_202207301415.pdf"></a> 
 </object>
