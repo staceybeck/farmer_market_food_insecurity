@@ -1,13 +1,5 @@
 # Farmers' Market and Food Insecurity
 
-![datafolio](src/data/images/Team20_Datafolio_DS4A_202207301415.pdf)
-xfun::embed_file("src/data/images/Team20_Datafolio_DS4A_202207301415.pdf")
-<img src="https://github.com/yecatstevir/farmer_market_food_insecurity/blob/040bc73ad7fbc71ddbb7cd51d0eab8ce4dad0aa4/src/data/images/Team20_Datafolio_DS4A_202207301415.pdf" alt="Poster" title="Role Of Farmers' Markets on Food Insecurity">
+We looked at the relationship between the presence of Farmers' Markets (those that accept Federal Nutritional Assistance Programs and those that do not) in a US county and food insecurity in that county, as well as important factors that may be related to counties that have farmers' markets. We used predictive analyses to determine the likelihood of a county having a farmers' market and found counties that would benefit from having a farmers' market when one does not exist.
 
-
-
-
-<!-- Embed PDF File -->
-<object data="src/data/images/Team20_Datafolio_DS4A_202207301415.pdf" type="application/pdf" title="SamplePdf" width="500" height="720">
-    <a href="src/data/images/Team20_Datafolio_DS4A_202207301415.pdf"></a> 
-</object>
+![datafolio](https://github.com/yecatstevir/farmer_market_food_insecurity/blob/a386e51c86c9241142ca96370a4c8a7de847632f/src/data/images/Screen%20Shot%202022-08-11%20at%2010.50.45%20AM.png)
